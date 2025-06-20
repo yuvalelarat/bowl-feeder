@@ -48,70 +48,95 @@ void setup() {
 }
 
 void loop() {
-   if (!feedingState) {
+  if (!feedingState) {
     feederServo.write(SERVO_CLOSED);
-    lcd.setCursor(0, 1);
   }
   
   if (triggerFeed) {
     triggerFeed = false;
-    
-    if (measuredDistance != previousDistance || feedingState != (measuredDistance > BOWL_EMPTY_THRESHOLD)) {
-      previousDistance = measuredDistance;
-      feedingState = (measuredDistance > BOWL_EMPTY_THRESHOLD);
-      
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("Distance: ");
-      lcd.print(measuredDistance);
-      lcd.print("cm");
-      
-      if (feedingState) {
-        lcd.setCursor(0, 1);
-        lcd.print("Feeding...");
-        Serial.println("FEEDING");
-        feederServo.write(SERVO_OPEN);
-        delay(FEEDING_DURATION);
-      } else {
-        if (measuredDistance < BOWL_FULL_THRESHOLD){
-          Serial.println("FULL");
-          lcd.setCursor(0, 1);
-      	  lcd.print("FULL");
-        }
-        if (measuredDistance > BOWL_FULL_THRESHOLD) {
-          int maxDots = LCD_COLS;
-          int dotsCount = map(measuredDistance, 0, BOWL_EMPTY_THRESHOLD, maxDots, 0);
-          dotsCount = constrain(dotsCount, 0, maxDots);
-          
-          lcd.setCursor(0, 1);
-          for (int i = 0; i < dotsCount; i++) {
-            lcd.print(".");
-          }
-          int percentFull = (dotsCount * 100) / 14;
-		  Serial.println(String(percentFull) + "% FULL");
-          for (int i = dotsCount; i < maxDots; i++) {
-            lcd.print(" ");
-          }
-        }
-      }
-    }
+    processDistanceUpdate();
   }
 }
 
-void setupTimer2() {
+void processDistanceUpdate() {
+  if (distanceChanged() || feedingStateChanged()) {
+    previousDistance = measuredDistance;
+    feedingState = (measuredDistance > BOWL_EMPTY_THRESHOLD);
+    
+    updateDisplay();
+  }
+}
+
+bool distanceChanged() {
+  return measuredDistance != previousDistance;
+}
+
+bool feedingStateChanged() {
+  return feedingState != (measuredDistance > BOWL_EMPTY_THRESHOLD);
+}
+
+void updateDisplay() {
+  displayDistance();
   
+  if (feedingState) {
+    handleFeeding();
+  } else if (measuredDistance < BOWL_FULL_THRESHOLD) {
+    displayFullBowl();
+  } else {
+    displayPartialBowl();
+  }
+}
+
+void displayDistance() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Distance: ");
+  lcd.print(measuredDistance);
+  lcd.print("cm");
+}
+
+void handleFeeding() {
+  lcd.setCursor(0, 1);
+  lcd.print("Feeding...");
+  Serial.println("FEEDING");
+  feederServo.write(SERVO_OPEN);
+  delay(FEEDING_DURATION);
+}
+
+void displayFullBowl() {
+  Serial.println("FULL");
+  lcd.setCursor(0, 1);
+  lcd.print("FULL");
+}
+
+void displayPartialBowl() {
+  int maxDots = LCD_COLS;
+  int dotsCount = map(measuredDistance, 0, BOWL_EMPTY_THRESHOLD, maxDots, 0);
+  dotsCount = constrain(dotsCount, 0, maxDots);
+  
+  lcd.setCursor(0, 1);
+  
+  for (int i = 0; i < dotsCount; i++) {
+    lcd.print(".");
+  }
+  
+  for (int i = dotsCount; i < maxDots; i++) {
+    lcd.print(" ");
+  }
+  
+  int percentFull = (dotsCount * 100) / maxDots;
+  Serial.println(String(percentFull) + "% FULL");
+}
+
+void setupTimer2() {
   TCCR2A = 0;
   TCCR2B = 0;
   TCNT2 = 0;
   
   OCR2A = TIMER2_OCR_VALUE;
-  
   TCCR2A |= (1 << WGM21);
-  
   TCCR2B |= TIMER2_PRESCALER_64;
-  
   TIMSK2 |= (1 << OCIE2A);
-  
 }
 
 volatile unsigned int tickCount = 0;
