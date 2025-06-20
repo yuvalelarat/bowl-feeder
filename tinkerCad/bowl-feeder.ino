@@ -10,7 +10,6 @@
 
 #define BOWL_FULL_THRESHOLD 30
 #define BOWL_EMPTY_THRESHOLD 150
-#define MAX_DISTANCE_DISPLAY 150
 
 #define TIMER_TICKS_100MS 100
 #define FEEDING_DURATION 2000
@@ -76,10 +75,12 @@ void loop() {
       } else {
         if (measuredDistance < BOWL_FULL_THRESHOLD){
           Serial.println("FULL");
+          lcd.setCursor(0, 1);
+      	  lcd.print("FULL");
         }
         if (measuredDistance > BOWL_FULL_THRESHOLD) {
           int maxDots = LCD_COLS;
-          int dotsCount = map(measuredDistance, 0, MAX_DISTANCE_DISPLAY, maxDots, 0);
+          int dotsCount = map(measuredDistance, 0, BOWL_EMPTY_THRESHOLD, maxDots, 0);
           dotsCount = constrain(dotsCount, 0, maxDots);
           
           lcd.setCursor(0, 1);
@@ -98,7 +99,6 @@ void loop() {
 }
 
 void setupTimer2() {
-  noInterrupts();
   
   TCCR2A = 0;
   TCCR2B = 0;
@@ -112,7 +112,6 @@ void setupTimer2() {
   
   TIMSK2 |= (1 << OCIE2A);
   
-  interrupts();
 }
 
 volatile unsigned int tickCount = 0;
