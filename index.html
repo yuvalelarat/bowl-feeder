@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bowl Visualization</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .bowl {
+      position: relative;
+      width: 300px;
+      height: 150px;
+      background: #aaa;
+      border-radius: 0 0 150px 150px;
+      overflow: hidden;
+    }
+
+    .ball {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background: #ff6347;
+      border-radius: 50%;
+      transition: all 0.3s;
+      top: 50%
+    }
+
+    .status {
+      margin-top: 20px;
+      font-size: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bowl" id="bowl"></div>
+  <div class="status" id="status">Waiting for data...</div>
+
+  <script>
+    const bowl = document.getElementById('bowl');
+    const status = document.getElementById('status');
+    const socket = new WebSocket('ws://localhost:3000');
+
+    const MAX_BALLS = 15;
+
+    function updateBowl(percentage) {
+      bowl.innerHTML = '';
+      const count = Math.round((percentage / 100) * MAX_BALLS);
+      const ballSize = 30;
+      const rowHeight = 28;
+      const maxRows = 5;
+
+      const rows = [];
+      for (let row = 0; row < maxRows; row++) {
+        const ballsInRow = maxRows - row;
+        const rowY = bowl.clientHeight - (row + 1) * rowHeight - 10; // Bottom → Top
+        rows.push({ ballsInRow, rowY });
+      }
+
+      let placed = 0;
+      for (const { ballsInRow, rowY } of rows) {
+        const totalRowWidth = ballsInRow * ballSize + (ballsInRow - 1) * 4;
+        const startX = (bowl.clientWidth - totalRowWidth) / 2;
+
+        for (let i = 0; i < ballsInRow && placed < count; i++) {
+          const ball = document.createElement('div');
+          ball.classList.add('ball');
+          ball.style.left = `${startX + i * (ballSize + 4)}px`;
+          ball.style.top = `${rowY}px`;
+          bowl.appendChild(ball);
+          placed++;
+        }
+        if (placed >= count) break;
+      }
+
+      status.textContent = percentage === 100 ? 'FULL' : percentage === 0 ? 'FEEDING' : `${percentage}% FULL`;
+    }
+
+    socket.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type === 'serial') {
+        const numberMatch = msg.data.match(/\d+/);
+        if (numberMatch) {
+          const percentage = Math.min(100, parseInt(numberMatch[0], 10));
+          updateBowl(percentage);
+        } else if (msg.data === 'FEEDING') {
+          updateBowl(0);
+        } else if (msg.data === 'FULL') {
+          updateBowl(100);
+        }
+      }
+    };
+  </script>
+
+</body>
+</html>
