@@ -1,13 +1,13 @@
+require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const WebSocket = require('ws');
 const puppeteer = require('puppeteer-core');
-const proccess = require('process');
 
 const app = express();
 const PORT = 3000;
 
-app.use(express.static(path.join(__dirname))); // Serve index.html and static files
+app.use(express.static(path.join(__dirname)));
 
 const server = app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
@@ -29,9 +29,8 @@ function broadcast(data) {
   });
 }
 
-const url = proccess.env.URL; //from proccess.env.URL';
+const url = process.env.URL; //from proccess.env.URL';
 
-// Example Puppeteer serial monitor connection:
 (async () => {
     const browserURL = 'http://localhost:9222';
     const browser = await puppeteer.connect({ browserURL });
