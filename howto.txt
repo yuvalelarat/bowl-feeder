@@ -1,1 +1,1 @@
-in CMD type: "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\Users\{USER_NAME}\puppeteer-profile"
+in CMD type: "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222 --user-data-dir="C:\Users\yuval\puppeteer-profile"
